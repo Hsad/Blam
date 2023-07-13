@@ -242,6 +242,22 @@ pub fn main() anyerror!void {
 
     var agentorange = Agent{};
 
+    //var gpa = std.heap.GeneralPurposeAllocator(.{})();
+    //const allocator = gpa.allocator();
+    //defer _ = gpa.deinit();
+
+    //const bytes = try allocator.alloc(u8, 100);
+    //defer allocator.free(bytes);
+
+    //const horde = try allocator.alloc(Agent, 100);
+    //
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    const bond = try allocator.create(Agent);
+    const horde: []Agent = try allocator.alloc(Agent, 100);
+    horde[0].loc.x = 0.5;
+
     //print("rl.PI:{d}", .{rlm.vector3Length(camera.position)});
 
     // Main game loop
@@ -317,6 +333,11 @@ pub fn main() anyerror!void {
         agentorange.chaseMove(camera.position);
         agentorange.floor(&terry, pixels);
 
+        horde[0].chaseMove(camera.position);
+        horde[0].floor(&terry, pixels);
+        bond.chaseMove(camera.position);
+        bond.floor(&terry, pixels);
+
         // Draw
         //----------------------------------------------------------------------------------
         rl.beginDrawing();
@@ -341,6 +362,8 @@ pub fn main() anyerror!void {
         groundray.direction.z = 0;
         //
         agentorange.draw();
+        horde[0].draw();
+        bond.draw();
         //
         var gr = camera.target;
         gr.y += 1;
