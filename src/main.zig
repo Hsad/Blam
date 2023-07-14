@@ -83,6 +83,7 @@ const Agent = struct {
     loc: rl.Vector3 = rl.Vector3{ .x = 1, .y = 0, .z = 1 },
     health: u8 = 0,
     vel: rl.Vector3 = rl.Vector3{ .x = 0, .y = 0, .z = 0 },
+    color: rl.Color = rl.Color.green,
 
     fn randomMove(self: *Agent) void {
         if (rl.getRandomValue(0, 100) < 10) {
@@ -104,7 +105,7 @@ const Agent = struct {
         var xvel = xdiff * (0.002 / (@fabs(xdiff) + @fabs(zdiff)));
         var zvel = zdiff * (0.002 / (@fabs(xdiff) + @fabs(zdiff)));
 
-        print("xvel:{d}\n", .{xvel});
+        //print("xvel:{d}\n", .{xvel});
 
         self.vel.x = xvel;
         self.vel.z = zvel;
@@ -130,9 +131,9 @@ const Agent = struct {
     fn draw(self: *Agent) void {
         var top = self.loc;
         top.y += 0.06;
-        rl.drawCapsule(self.loc, top, 0.02, 8, 3, rl.Color.orange);
+        rl.drawCapsule(self.loc, top, 0.02, 8, 3, self.color);
         top.y += 0.025;
-        rl.drawCapsule(self.loc, top, 0.01, 8, 3, rl.Color.orange);
+        rl.drawCapsule(self.loc, top, 0.01, 8, 3, self.color);
     }
 };
 
@@ -241,6 +242,7 @@ pub fn main() anyerror!void {
     //
 
     var agentorange = Agent{};
+    agentorange.color = rl.Color.orange;
 
     //var gpa = std.heap.GeneralPurposeAllocator(.{})();
     //const allocator = gpa.allocator();
@@ -255,8 +257,29 @@ pub fn main() anyerror!void {
     defer arena.deinit();
     const allocator = arena.allocator();
     const bond = try allocator.create(Agent);
-    const horde: []Agent = try allocator.alloc(Agent, 100);
-    horde[0].loc.x = 0.5;
+    const horde: []Agent = try allocator.alloc(Agent, 500); //5fps
+    bond.color = rl.Color.blue;
+    bond.loc.x = 0.5;
+    for (horde) |_, i| {
+        horde[i].loc.x = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.x))) / 10;
+        horde[i].loc.z = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.z))) / 10;
+        horde[i].color = rl.Color{ .r = 20, .g = 100, .b = 40, .a = 255 };
+    }
+
+    var cube = rl.genMeshCube(1, 1, 1);
+    var cubetransform = rlm.matrixIdentity();
+    var cubetranslation = rlm.matrixTranslate(0, 0, 0);
+    var cubeaxis = rl.Vector3{ .x = 0, .y = 1, .z = 0 }; //rlm.vector3Normalize(rl); //rlm.matrixIdentity();
+    var cubeangle: f32 = 0;
+    var cuberotation = rlm.matrixRotate(cubeaxis, cubeangle);
+    cubetransform = rlm.matrixMultiply(cuberotation, cubetranslation);
+    _ = cube;
+
+    const matDefault: rl.Material = rl.loadMaterialDefault();
+
+    matDefault.maps[0].color = rl.Color.blue;
+    //model.materials[0].maps[rl.MaterialMapIndex.material_map_albedo].texture = demotexture;
+    //material_map_albedo = 0,
 
     //print("rl.PI:{d}", .{rlm.vector3Length(camera.position)});
 
@@ -333,8 +356,10 @@ pub fn main() anyerror!void {
         agentorange.chaseMove(camera.position);
         agentorange.floor(&terry, pixels);
 
-        horde[0].chaseMove(camera.position);
-        horde[0].floor(&terry, pixels);
+        for (horde) |_, i| {
+            horde[i].chaseMove(camera.position);
+            horde[i].floor(&terry, pixels);
+        }
         bond.chaseMove(camera.position);
         bond.floor(&terry, pixels);
 
@@ -348,7 +373,6 @@ pub fn main() anyerror!void {
 
         rl.drawModel(model, mapPosition, 1.0, rl.Color.white);
         rl.drawGrid(20, 1.0);
-        //rl.drawCube(rl.vector3{ .x = 1, .y = 0.5, .z = 0 }, 1, 1, 1, rl.BLUE);
         rl.drawRay(groundray, rl.Color.red);
         groundray.direction.x = -1;
         rl.drawRay(groundray, rl.Color.red);
@@ -361,16 +385,22 @@ pub fn main() anyerror!void {
         rl.drawRay(groundray, rl.Color.red);
         groundray.direction.z = 0;
         //
-        agentorange.draw();
-        horde[0].draw();
         bond.draw();
+        agentorange.draw();
+        for (horde) |_, i| {
+            horde[i].draw();
+        }
         //
         var gr = camera.target;
         gr.y += 1;
         //rl.drawCapsule(camera.target, gr, 1, 8, 4, rl.color.red);
         //print("cam.targ:{}|{}|{}", .{ camera.target.x, camera.target.y, camera.target.z });
         //
+        //
         rl.endMode3D();
+
+        const fpsString = try std.fmt.allocPrint(allocator, "fps:{d}", .{rl.getFPS()});
+        rl.drawText(fpsString, 20, 20, 20, rl.Color.gray);
 
         //rl.drawText("Hi Dash", 190, 200, 20, rl.lIGHTGRAY);
 
