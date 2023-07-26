@@ -135,6 +135,86 @@ const Agent = struct {
         top.y += 0.025;
         rl.drawCapsule(self.loc, top, 0.01, 8, 3, self.color);
     }
+    fn drawModel(self: *Agent, model: rl.Model) void {
+        var top = self.loc;
+        rl.drawModel(model, top, 1, self.color);
+    }
+    //fn drawInstanced(self: *Agent, model: rl.Model, agentcnt: usize) void {
+    //    var mtx: rl.Matrix = rlm.matrixTranslate(self.loc.x, self.loc.y, self.loc.z);
+
+    //    //rl.modelMatrixSet(model.meshes[0], mtx);
+    //    var mat: rl.Material = model.materials[0];
+    //    rl.drawMeshInstanced(model.meshes[0], mat, mtx, agentcnt);
+    //}
+};
+
+const SkyBall = struct {
+    loc: rl.Vector3,
+    trans: rl.Matrix,
+    //fn setMatrix(self: *SkyBall) void {
+    //    self.trans = rlm.matrixTranslate(self.loc.x, self.loc.y, self.loc.z);
+    //}
+    //fn draw(self: *SkyBall) void {
+    //    rl.drawSphere(self.loc, 0.05, 8, 8, rl.Color.white);
+    //}
+};
+
+////World
+//components
+//mask
+//systems
+
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const ally = gpa.allocator();
+const World = struct {
+    //components
+    //not sure how to make a resizable array
+    loc: std.ArrayList(i32) = std.ArrayList(i32).init(ally),
+    mask: std.ArrayList(u32) = std.ArrayList(u32).init(ally),
+    arch: std.MultiArrayList(Agent) = std.MultiArrayList(Agent){},
+    balls: std.MultiArrayList(SkyBall) = std.MultiArrayList(SkyBall){},
+    //I think I want to make a new MultiArrayList for each architype
+    //and then have a mask that indexes to each MultiArrayList
+    //instead of iterating through every item in the sparse array
+    //supposedly faster
+    //Maybe a combo of these two is best, architypes for common types
+    //and the general arrays for uncommon component combinations
+    //that way you can pack the majority of things together
+    //
+    //Interesting idea, Systems own the component arrays
+    //And the selection of which system owns the compoent is based off
+    //of which system writes to the compoennt
+    //reminds me of my early neuron flow system
+
+    //Now should systems be in here, or should they be their own thing
+    //I almost think they could be in here
+    //categories of Input, Update, Draw
+
+    //fn input(self: *World) void{}
+    fn update(self: *World) void {
+        //skyballs
+        //in the future need to filter by mask
+        var slice = self.balls.slice();
+        var locs = slice.items(.loc);
+        var trans = slice.items(.trans);
+
+        for (locs) |loc, i| {
+            _ = loc;
+            _ = trans;
+            _ = i;
+            //trans[i] = rlm.matrixTranslate(loc.x, loc.y, loc.z);
+        }
+    }
+    fn draw(self: *World, zomb: rl.Model) void {
+        //var balltrans = self.balls.items(.trans);
+        //var mat: rl.Material = zomb.materials[0];
+        //rl.drawMeshInstanced(zomb.meshes[0], mat, balltrans, @intCast(i32, balltrans.len));
+        var ballloc = self.balls.items(.loc);
+        for (ballloc) |loc| {
+            //rl.drawSphere(loc, 0.1, rl.Color.red);
+            rl.drawModel(zomb, loc, 1, rl.Color.red);
+        }
+    }
 };
 
 pub fn main() anyerror!void {
@@ -147,6 +227,26 @@ pub fn main() anyerror!void {
     //rl.SetConfigFlags(.FLAG_WINDOW_RESIZABLE);
     rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
+    //
+
+    var ZombieModel: rl.Model = rl.loadModel("models/Zombie.obj");
+    //var ZombieModel: rl.Model = rl.loadModelFromMesh(rl.genMeshCylinder(0.1, 0.5, 8));
+    ZombieModel.materials[0].maps[0].color = rl.Color.red;
+    //ZombieModel.materials[0].maps[0].shader = rl.loadShader(, "")
+    //var ZombieShader = rl.loadShader()
+    //var ZombieMaterial: rl.Material = rl.loadMaterialDefault();
+
+    //Initilize ECS
+    var world = World{};
+    //try world.balls.ensureTotalCapacity(ally, 500);
+    try world.balls.resize(ally, 500);
+    var xx: usize = 0;
+    while (xx < 100) : (xx += 1) {
+        var x = @intToFloat(f32, rl.getRandomValue(90, 110));
+        var y = @intToFloat(f32, rl.getRandomValue(5, 10));
+        var z = @intToFloat(f32, rl.getRandomValue(90, 110));
+        world.balls.set(xx, SkyBall{ .loc = rl.Vector3{ .x = x, .y = y, .z = z }, .trans = rlm.matrixIdentity() });
+    }
 
     //const img = rl.LoadImage("C:/Misc/Projects/ColoradoGeoMap/Evergreen2.png");
     //const img = rl.LoadImage("~/Omni/Projects/ColoradoGeoMap/Evergreen2.png");
@@ -231,11 +331,15 @@ pub fn main() anyerror!void {
     //    .direction = rl.Vector3{ .x = 0, .y = -1, .z = 0 },
     //};
     //var uhhTransform: rl.Matrix = rl.GetCameraMatrix(camera);
-    var camcoords = rl.Vector2{ .x = 0, .y = 0 };
+    var camcoords = rl.Vector2{ .x = mapscale.x / 2, .y = mapscale.z / 2 };
+    //camcoords = rl.Vector2{ .x = 1, .y = 1 };
     var camy: f32 = 0;
     var eyeheight: f32 = 0.1;
     var gndpnt: f32 = 0.0;
     var fallspd: f32 = 0.0;
+
+    camera.position.x = camcoords.x;
+    camera.position.z = camcoords.y;
 
     //var campos = rl.Vector3{ .x = 0, .y = 0, .z = 0 };
     //var camrot = rl.Vector3{ .x = 0, .y = 0, .z = 0 };
@@ -258,12 +362,22 @@ pub fn main() anyerror!void {
     const allocator = arena.allocator();
     const bond = try allocator.create(Agent);
     const horde: []Agent = try allocator.alloc(Agent, 500); //5fps
+    const survivors: []Agent = try allocator.alloc(Agent, 100);
     bond.color = rl.Color.blue;
     bond.loc.x = 0.5;
     for (horde) |_, i| {
         horde[i].loc.x = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.x))) / 10;
         horde[i].loc.z = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.z))) / 10;
+        horde[i].loc.x += mapscale.x / 2;
+        horde[i].loc.z += mapscale.z / 2;
         horde[i].color = rl.Color{ .r = 20, .g = 100, .b = 40, .a = 255 };
+    }
+    for (survivors) |_, i| {
+        survivors[i].loc.x = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.x))) / 10;
+        survivors[i].loc.z = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.z))) / 10;
+        survivors[i].loc.x += mapscale.x / 2;
+        survivors[i].loc.z += mapscale.z / 2;
+        survivors[i].color = rl.Color{ .r = 220, .g = 100, .b = 140, .a = 255 };
     }
 
     var cube = rl.genMeshCube(1, 1, 1);
@@ -360,8 +474,16 @@ pub fn main() anyerror!void {
             horde[i].chaseMove(camera.position);
             horde[i].floor(&terry, pixels);
         }
+        for (survivors) |_, i| {
+            survivors[i].chaseMove(camera.position);
+            survivors[i].floor(&terry, pixels);
+        }
         bond.chaseMove(camera.position);
         bond.floor(&terry, pixels);
+
+        //ECS UPDATE
+        world.update();
+        // Now I need a detection system so zombies can chase, and survivors can avoid
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -388,7 +510,13 @@ pub fn main() anyerror!void {
         bond.draw();
         agentorange.draw();
         for (horde) |_, i| {
-            horde[i].draw();
+            //horde[i].draw();
+            horde[i].drawModel(ZombieModel);
+            //horde[i].drawInstanced(ZombieModel, horde.len);
+        }
+        for (survivors) |_, i| {
+            //survivors[i].draw();
+            survivors[i].drawModel(ZombieModel);
         }
         //
         var gr = camera.target;
@@ -396,7 +524,9 @@ pub fn main() anyerror!void {
         //rl.drawCapsule(camera.target, gr, 1, 8, 4, rl.color.red);
         //print("cam.targ:{}|{}|{}", .{ camera.target.x, camera.target.y, camera.target.z });
         //
-        //
+        // ECS DRAW
+        world.draw(ZombieModel);
+
         rl.endMode3D();
 
         const fpsString = try std.fmt.allocPrint(allocator, "fps:{d}", .{rl.getFPS()});
