@@ -137,7 +137,7 @@ const Agent = struct {
     }
     fn drawModel(self: *Agent, model: rl.Model) void {
         var top = self.loc;
-        rl.drawModel(model, top, 1, self.color);
+        rl.drawModel(model, top, 0.03, self.color);
     }
     //fn drawInstanced(self: *Agent, model: rl.Model, agentcnt: usize) void {
     //    var mtx: rl.Matrix = rlm.matrixTranslate(self.loc.x, self.loc.y, self.loc.z);
@@ -212,7 +212,7 @@ const World = struct {
         var ballloc = self.balls.items(.loc);
         for (ballloc) |loc| {
             //rl.drawSphere(loc, 0.1, rl.Color.red);
-            rl.drawModel(zomb, loc, 1, rl.Color.red);
+            rl.drawModel(zomb, loc, 0.03, rl.Color.red);
         }
     }
 };
@@ -225,13 +225,13 @@ pub fn main() anyerror!void {
 
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
     //rl.SetConfigFlags(.FLAG_WINDOW_RESIZABLE);
-    rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
+    //rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
     //
 
     var ZombieModel: rl.Model = rl.loadModel("models/Zombie.obj");
     //var ZombieModel: rl.Model = rl.loadModelFromMesh(rl.genMeshCylinder(0.1, 0.5, 8));
-    ZombieModel.materials[0].maps[0].color = rl.Color.red;
+    //ZombieModel.materials[0].maps[0].color = rl.Color.red;
     //ZombieModel.materials[0].maps[0].shader = rl.loadShader(, "")
     //var ZombieShader = rl.loadShader()
     //var ZombieMaterial: rl.Material = rl.loadMaterialDefault();
@@ -241,7 +241,7 @@ pub fn main() anyerror!void {
     //try world.balls.ensureTotalCapacity(ally, 500);
     try world.balls.resize(ally, 500);
     var xx: usize = 0;
-    while (xx < 100) : (xx += 1) {
+    while (xx < world.balls.len) : (xx += 1) {
         var x = @intToFloat(f32, rl.getRandomValue(90, 110));
         var y = @intToFloat(f32, rl.getRandomValue(5, 10));
         var z = @intToFloat(f32, rl.getRandomValue(90, 110));
