@@ -1,3 +1,6 @@
 
 /zig-cache
 *.blend
+.zig-cache
+
+/zig-out

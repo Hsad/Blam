@@ -6,7 +6,8 @@
 //
 
 const rl = @import("raylib");
-const rlm = @import("raylib-math");
+//const rlm = @import("raylib-math");
+const rlm = rl.math;
 
 const std = @import("std");
 const print = std.debug.print;
@@ -19,12 +20,12 @@ const Terrain = struct {
     mapoffset: rl.Vector3,
 
     fn coordToPixel(self: *Terrain, coord: rl.Vector2) usize {
-        var xcoordsafe = @max(0, @min(1, coord.x / self.mapscale.x));
-        var x = iLerp(f64, 0, @intToFloat(f64, self.hmImageSize.x), xcoordsafe);
-        var zcoordsafe = @max(0, @min(1, coord.y / self.mapscale.z));
-        var z = iLerp(f64, 0, @intToFloat(f64, self.hmImageSize.z), zcoordsafe);
+        const xcoordsafe = @max(0, @min(1, coord.x / self.mapscale.x));
+        const x = iLerp(f64, 0, @floatFromInt(self.hmImageSize.x), xcoordsafe);
+        const zcoordsafe = @max(0, @min(1, coord.y / self.mapscale.z));
+        const z = iLerp(f64, 0, @floatFromInt(self.hmImageSize.z), zcoordsafe);
 
-        return @floatToInt(u32, z) * self.hmImageSize.x + @floatToInt(u32, x);
+        return @as(u32, @intFromFloat(z)) * self.hmImageSize.x + @as(usize, @intFromFloat(x));
     }
 
     pub fn getGroundPoint(self: *Terrain, pixels: [*]rl.Color, coord: rl.Vector2) rl.Vector3 {
@@ -33,7 +34,7 @@ const Terrain = struct {
         var ht = rl.colorNormalize(pixels[self.coordToPixel(coord)]).x;
         ht = ht * self.mapscale.y;
         //print("height:{d}\n", .{ht});
-        var groundpoint = rl.Vector3{ .x = coord.x, .y = ht, .z = coord.y };
+        const groundpoint = rl.Vector3{ .x = coord.x, .y = ht, .z = coord.y };
         //groundpoint is the coodinate translated to pixel space, looked up for height,
         //then the coordiante xz is used with the height.
         //the input of xz should be in coordinate space to make my live easier in the future.
@@ -41,31 +42,31 @@ const Terrain = struct {
     }
 
     pub fn getPreciseGroundPoint(self: *Terrain, pixels: [*]rl.Color, coord: rl.Vector2) rl.Vector3 {
-        var xcoordsafe = @max(0, @min(1, coord.x / self.mapscale.x));
-        var x = iLerp(f32, 0, @intToFloat(f32, self.hmImageSize.x), xcoordsafe);
-        var zcoordsafe = @max(0, @min(1, coord.y / self.mapscale.z));
-        var z = iLerp(f32, 0, @intToFloat(f32, self.hmImageSize.z), zcoordsafe);
+        const xcoordsafe = @max(0, @min(1, coord.x / self.mapscale.x));
+        const x = iLerp(f32, 0, @floatFromInt(self.hmImageSize.x), xcoordsafe);
+        const zcoordsafe = @max(0, @min(1, coord.y / self.mapscale.z));
+        const z = iLerp(f32, 0, @floatFromInt(self.hmImageSize.z), zcoordsafe);
 
         //x high, x low
-        var xhigh = @ceil(x);
-        var xlow = @floor(x);
-        var xhInt = @floatToInt(u32, xhigh);
-        var xlInt = @floatToInt(u32, xlow);
+        const xhigh = @ceil(x);
+        const xlow = @floor(x);
+        const xhInt = @as(u32, @intFromFloat(xhigh));
+        const xlInt = @as(u32, @intFromFloat(xlow));
         //z high, z low
-        var zhigh = @ceil(z);
-        var zlow = @floor(z);
-        var zhInt = @floatToInt(u32, zhigh);
-        var zlInt = @floatToInt(u32, zlow);
+        const zhigh = @ceil(z);
+        const zlow = @floor(z);
+        const zhInt = @as(u32, @intFromFloat(zhigh));
+        const zlInt = @as(u32, @intFromFloat(zlow));
         //print("\n(x)h:{d},l:{d}\n", .{ xhigh, xlow });
         //print("(z)h:{d},l:{d}\n", .{ zhigh, zlow });
         // I think I need to take two lerp points,
         // then from those two heights, lerp a third time
-        var ahigh = rl.colorNormalize(pixels[zhInt * self.hmImageSize.x + xhInt]).x;
-        var alow = rl.colorNormalize(pixels[zhInt * self.hmImageSize.x + xlInt]).x;
+        const ahigh = rl.colorNormalize(pixels[zhInt * self.hmImageSize.x + xhInt]).x;
+        const alow = rl.colorNormalize(pixels[zhInt * self.hmImageSize.x + xlInt]).x;
         var a = iLerp(f32, alow, ahigh, x - xlow);
         //print("a:{d}", .{a});
-        var bhigh = rl.colorNormalize(pixels[zlInt * self.hmImageSize.x + xhInt]).x;
-        var blow = rl.colorNormalize(pixels[zlInt * self.hmImageSize.x + xlInt]).x;
+        const bhigh = rl.colorNormalize(pixels[zlInt * self.hmImageSize.x + xhInt]).x;
+        const blow = rl.colorNormalize(pixels[zlInt * self.hmImageSize.x + xlInt]).x;
         var b = iLerp(f32, blow, bhigh, x - xlow);
         //print("b:{d}", .{b});
         var c = iLerp(f32, b, a, z - zlow);
@@ -87,23 +88,23 @@ const Agent = struct {
 
     fn randomMove(self: *Agent) void {
         if (rl.getRandomValue(0, 100) < 10) {
-            self.vel.x = @intToFloat(f32, rl.getRandomValue(-1, 1)) * 0.01;
-            self.vel.z = @intToFloat(f32, rl.getRandomValue(-1, 1)) * 0.01;
+            self.vel.x = @as(f32, @floatFromInt(rl.getRandomValue(-1, 1))) * 0.01;
+            self.vel.z = @as(f32, @floatFromInt(rl.getRandomValue(-1, 1))) * 0.01;
         }
         self.loc.x += self.vel.x;
         self.loc.y += self.vel.y;
         self.loc.z += self.vel.z;
     }
     fn chaseMove(self: *Agent, target: rl.Vector3) void {
-        var xdiff = target.x - self.loc.x;
-        var zdiff = target.z - self.loc.z;
+        const xdiff = target.x - self.loc.x;
+        const zdiff = target.z - self.loc.z;
 
         //lazy mahattan normalizeation
         if (xdiff + zdiff == 0) {
             return;
         }
-        var xvel = xdiff * (0.002 / (@fabs(xdiff) + @fabs(zdiff)));
-        var zvel = zdiff * (0.002 / (@fabs(xdiff) + @fabs(zdiff)));
+        const xvel = xdiff * (0.002 / (@abs(xdiff) + @abs(zdiff)));
+        const zvel = zdiff * (0.002 / (@abs(xdiff) + @abs(zdiff)));
 
         //print("xvel:{d}\n", .{xvel});
 
@@ -116,10 +117,10 @@ const Agent = struct {
     }
 
     fn floor(self: *Agent, ground: *Terrain, pixels: [*]rl.Color) void {
-        var x = self.loc.x;
-        var z = self.loc.z;
+        const x = self.loc.x;
+        const z = self.loc.z;
 
-        var y = ground.getPreciseGroundPoint(pixels, rl.Vector2{ .x = x, .y = z }).y;
+        const y = ground.getPreciseGroundPoint(pixels, rl.Vector2{ .x = x, .y = z }).y;
         if (y < self.loc.y) {
             self.vel.y -= 0.01;
         } else {
@@ -136,7 +137,7 @@ const Agent = struct {
         rl.drawCapsule(self.loc, top, 0.01, 8, 3, self.color);
     }
     fn drawModel(self: *Agent, model: rl.Model) void {
-        var top = self.loc;
+        const top = self.loc;
         rl.drawModel(model, top, 0.03, self.color);
     }
     //fn drawInstanced(self: *Agent, model: rl.Model, agentcnt: usize) void {
@@ -194,11 +195,11 @@ const World = struct {
     fn update(self: *World) void {
         //skyballs
         //in the future need to filter by mask
-        var slice = self.balls.slice();
-        var locs = slice.items(.loc);
-        var trans = slice.items(.trans);
+        const slice = self.balls.slice();
+        const locs = slice.items(.loc);
+        const trans = slice.items(.trans);
 
-        for (locs) |loc, i| {
+        for (locs, 0..) |loc, i| {
             _ = loc;
             _ = trans;
             _ = i;
@@ -209,7 +210,7 @@ const World = struct {
         //var balltrans = self.balls.items(.trans);
         //var mat: rl.Material = zomb.materials[0];
         //rl.drawMeshInstanced(zomb.meshes[0], mat, balltrans, @intCast(i32, balltrans.len));
-        var ballloc = self.balls.items(.loc);
+        const ballloc = self.balls.items(.loc);
         for (ballloc) |loc| {
             //rl.drawSphere(loc, 0.1, rl.Color.red);
             rl.drawModel(zomb, loc, 0.03, rl.Color.red);
@@ -229,7 +230,7 @@ pub fn main() anyerror!void {
     //--------------------------------------------------------------------------------------
     //
 
-    var ZombieModel: rl.Model = rl.loadModel("models/Zombie.obj");
+    const ZombieModel: rl.Model = rl.loadModel("models/Zombie.obj");
     //var ZombieModel: rl.Model = rl.loadModelFromMesh(rl.genMeshCylinder(0.1, 0.5, 8));
     //ZombieModel.materials[0].maps[0].color = rl.Color.red;
     //ZombieModel.materials[0].maps[0].shader = rl.loadShader(, "")
@@ -242,9 +243,9 @@ pub fn main() anyerror!void {
     try world.balls.resize(ally, 500);
     var xx: usize = 0;
     while (xx < world.balls.len) : (xx += 1) {
-        var x = @intToFloat(f32, rl.getRandomValue(90, 110));
-        var y = @intToFloat(f32, rl.getRandomValue(5, 10));
-        var z = @intToFloat(f32, rl.getRandomValue(90, 110));
+        const x = @as(f32, @floatFromInt(rl.getRandomValue(90, 110)));
+        const y = @as(f32, @floatFromInt(rl.getRandomValue(5, 10)));
+        const z = @as(f32, @floatFromInt(rl.getRandomValue(90, 110)));
         world.balls.set(xx, SkyBall{ .loc = rl.Vector3{ .x = x, .y = y, .z = z }, .trans = rlm.matrixIdentity() });
     }
 
@@ -259,18 +260,31 @@ pub fn main() anyerror!void {
 
     //print("w:{d}, h:{d}", .{ img.width, img.height });
 
-    const pixels = @ptrCast([*]rl.Color, @alignCast(@alignOf(rl.Color), img.data.?));
+    //const pixels = @ptrCast([*]rl.Color, @alignCast(@alignOf(rl.Color), img.data.?));
+    //const pixels = @as([*]rl.Color, @ptrCast(img.data.?));
+    const pixels = @as([*]rl.Color, @ptrCast(img.data));
 
-    // Begin copy of heightmap code
+    // chat
+    // Zig code for setting the camera mode using UpdateCamera
     var camera: rl.Camera = rl.Camera3D{
-        .position = rl.Vector3{ .x = 1.0, .y = 5.0, .z = 1.0 },
-        .target = rl.Vector3{ .x = 0.0, .y = 1.0, .z = 0.0 },
+        .position = rl.Vector3{ .x = 0.0, .y = 2.0, .z = 4.0 },
+        .target = rl.Vector3{ .x = 0.0, .y = 2.0, .z = 0.0 },
         .up = rl.Vector3{ .x = 0.0, .y = 1.0, .z = 0.0 },
-        .fovy = 45.0,
+        .fovy = 60.0,
         .projection = rl.CameraProjection.camera_perspective,
-        //.projection = 0,
     };
-    var viewMatrix: rl.Matrix = rl.getCameraMatrix(camera);
+    var cameraMode = rl.CameraMode.camera_first_person;
+
+    //// Begin copy of heightmap code
+    //var camera: rl.Camera = rl.Camera3D{
+    //    .position = rl.Vector3{ .x = 1.0, .y = 5.0, .z = 1.0 },
+    //    .target = rl.Vector3{ .x = 0.0, .y = 1.0, .z = 0.0 },
+    //    .up = rl.Vector3{ .x = 0.0, .y = 1.0, .z = 0.0 },
+    //    .fovy = 45.0,
+    //    .projection = rl.CameraProjection.camera_perspective,
+    //    //.projection = 0,
+    //};
+    const viewMatrix: rl.Matrix = rl.getCameraMatrix(camera);
 
     //const demoimage = rl.LoadImage("C:/Misc/Projects/ColoradoGeoMap/EvergreenCompositeSmooshed.png");
     //const demoimage = rl.LoadImage("resources/textures/tex.png");
@@ -282,12 +296,12 @@ pub fn main() anyerror!void {
     //const demotexture = rl.LoadTextureFromImage(img);
 
     // Global map values..
-    var mapscale: rl.Vector3 = rl.Vector3{ .x = 200, .y = 5, .z = 200 };
+    const mapscale: rl.Vector3 = rl.Vector3{ .x = 200, .y = 5, .z = 200 };
     //the dimentions of the heightmap | int
     //var heightmapSize: rl.Vector2 = rl.Vector2{ .x = img.width, .y = img.height };
-    var heightmapSize: int2 = int2{
-        .x = @truncate(u16, @bitCast(u32, img.width)),
-        .z = @truncate(u16, @bitCast(u32, img.height)) - 1, // -1 to prevent segfalt
+    const heightmapSize: int2 = int2{
+        .x = @as(u16, @truncate(@as(u32, @bitCast(img.width)))),
+        .z = @as(u16, @truncate(@as(u32, @bitCast(img.height)))) - 1, // -1 to prevent segfalt
     };
     //print("imgsize:{d},{d}", .{ heightmapSize.x, heightmapSize.z });
 
@@ -312,12 +326,12 @@ pub fn main() anyerror!void {
 
     rl.disableCursor();
     //rl.SetCameraMode(camera, rl.CameraMode.CAMERA_ORBITAL);
-    rl.setCameraMode(camera, rl.CameraMode.camera_first_person);
+    //rl.setCameraMode(camera, rl.CameraMode.camera_first_person);
     //rl.SetCameraMode(camera, rl.CameraMode.CAMERA_FREE);
     //rl.SetCameraMode(camera, rl.CameraMode.CAMERA_CUSTOM);
 
     //const cam = @ptrCast([*]rl.Camera, @alignCast(@alignOf(rl.Camera), &camera));
-    rl.updateCamera(&camera);
+    //rl.updateCamera(&camera);
 
     var samplecoords = rl.Vector2{ .x = 0, .y = 0 };
     var groundray: rl.Ray = rl.Ray{
@@ -334,7 +348,7 @@ pub fn main() anyerror!void {
     var camcoords = rl.Vector2{ .x = mapscale.x / 2, .y = mapscale.z / 2 };
     //camcoords = rl.Vector2{ .x = 1, .y = 1 };
     var camy: f32 = 0;
-    var eyeheight: f32 = 0.1;
+    const eyeheight: f32 = 0.1;
     var gndpnt: f32 = 0.0;
     var fallspd: f32 = 0.0;
 
@@ -365,27 +379,27 @@ pub fn main() anyerror!void {
     const survivors: []Agent = try allocator.alloc(Agent, 100);
     bond.color = rl.Color.blue;
     bond.loc.x = 0.5;
-    for (horde) |_, i| {
-        horde[i].loc.x = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.x))) / 10;
-        horde[i].loc.z = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.z))) / 10;
+    for (horde, 0..) |_, i| {
+        horde[i].loc.x = @as(f32, @floatFromInt(rl.getRandomValue(0, @as(u32, @intFromFloat(mapscale.x))))) / 10;
+        horde[i].loc.z = @as(f32, @floatFromInt(rl.getRandomValue(0, @as(u32, @intFromFloat(mapscale.z))))) / 10;
         horde[i].loc.x += mapscale.x / 2;
         horde[i].loc.z += mapscale.z / 2;
         horde[i].color = rl.Color{ .r = 20, .g = 100, .b = 40, .a = 255 };
     }
-    for (survivors) |_, i| {
-        survivors[i].loc.x = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.x))) / 10;
-        survivors[i].loc.z = @intToFloat(f32, rl.getRandomValue(0, @floatToInt(i32, mapscale.z))) / 10;
+    for (survivors, 0..) |_, i| {
+        survivors[i].loc.x = @as(f32, @floatFromInt(rl.getRandomValue(0, @as(u32, @intFromFloat(mapscale.x))))) / 10;
+        survivors[i].loc.z = @as(f32, @floatFromInt(rl.getRandomValue(0, @as(u32, @intFromFloat(mapscale.z))))) / 10;
         survivors[i].loc.x += mapscale.x / 2;
         survivors[i].loc.z += mapscale.z / 2;
         survivors[i].color = rl.Color{ .r = 220, .g = 100, .b = 140, .a = 255 };
     }
 
-    var cube = rl.genMeshCube(1, 1, 1);
+    const cube = rl.genMeshCube(1, 1, 1);
     var cubetransform = rlm.matrixIdentity();
-    var cubetranslation = rlm.matrixTranslate(0, 0, 0);
-    var cubeaxis = rl.Vector3{ .x = 0, .y = 1, .z = 0 }; //rlm.vector3Normalize(rl); //rlm.matrixIdentity();
-    var cubeangle: f32 = 0;
-    var cuberotation = rlm.matrixRotate(cubeaxis, cubeangle);
+    const cubetranslation = rlm.matrixTranslate(0, 0, 0);
+    const cubeaxis = rl.Vector3{ .x = 0, .y = 1, .z = 0 }; //rlm.vector3Normalize(rl); //rlm.matrixIdentity();
+    const cubeangle: f32 = 0;
+    const cuberotation = rlm.matrixRotate(cubeaxis, cubeangle);
     cubetransform = rlm.matrixMultiply(cuberotation, cubetranslation);
     _ = cube;
 
@@ -399,6 +413,23 @@ pub fn main() anyerror!void {
 
     // Main game loop
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
+        // Switch camera mode with keys (1, 2, 3, 4)
+        if (rl.isKeyPressed(rl.KeyboardKey.key_one)) {
+            cameraMode = rl.CameraMode.camera_free;
+            camera.up = rl.Vector3{ .x = 0.0, .y = 1.0, .z = 0.0 };
+        }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_two)) {
+            cameraMode = rl.CameraMode.camera_first_person;
+            camera.up = rl.Vector3{ .x = 0.0, .y = 1.0, .z = 0.0 };
+        }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_three)) {
+            cameraMode = rl.CameraMode.camera_third_person;
+            camera.up = rl.Vector3{ .x = 0.0, .y = 1.0, .z = 0.0 };
+        }
+        if (rl.isKeyPressed(rl.KeyboardKey.key_four)) {
+            cameraMode = rl.CameraMode.camera_orbital;
+            camera.up = rl.Vector3{ .x = 0.0, .y = 1.0, .z = 0.0 };
+        }
         // Update
         if (rl.isKeyDown(rl.KeyboardKey.key_right)) samplecoords.x += 0.02;
         if (rl.isKeyDown(rl.KeyboardKey.key_left)) samplecoords.x -= 0.02;
@@ -417,7 +448,12 @@ pub fn main() anyerror!void {
         //if (rl.isKeyDown(rl.KeyboardKey.KEY_D)) camcoords.y += 0.05;
         if (rl.isKeyDown(rl.KeyboardKey.key_space)) fallspd = 0.01;
         //
-        rl.updateCamera(&camera);
+
+        // Update camera based on current mode
+        rl.updateCamera(&camera, cameraMode);
+
+        //rl.updateCamera(&camera);
+
         //var groundHit: rl.RayCollision = rl.GetRayCollisionMesh(groundProbe, mesh, uhhTransform);
         //rl.DrawRay(groundProbe, rl.BLUE);
         camcoords.x = camera.position.x;
@@ -470,11 +506,11 @@ pub fn main() anyerror!void {
         agentorange.chaseMove(camera.position);
         agentorange.floor(&terry, pixels);
 
-        for (horde) |_, i| {
+        for (horde, 0..) |_, i| {
             horde[i].chaseMove(camera.position);
             horde[i].floor(&terry, pixels);
         }
-        for (survivors) |_, i| {
+        for (survivors, 0..) |_, i| {
             survivors[i].chaseMove(camera.position);
             survivors[i].floor(&terry, pixels);
         }
@@ -509,12 +545,12 @@ pub fn main() anyerror!void {
         //
         bond.draw();
         agentorange.draw();
-        for (horde) |_, i| {
+        for (horde, 0..) |_, i| {
             //horde[i].draw();
             horde[i].drawModel(ZombieModel);
             //horde[i].drawInstanced(ZombieModel, horde.len);
         }
-        for (survivors) |_, i| {
+        for (survivors, 0..) |_, i| {
             //survivors[i].draw();
             survivors[i].drawModel(ZombieModel);
         }
@@ -529,10 +565,15 @@ pub fn main() anyerror!void {
 
         rl.endMode3D();
 
-        const fpsString = try std.fmt.allocPrint(allocator, "fps:{d}", .{rl.getFPS()});
+        //const fpsString = try std.fmt.allocPrint(allocator, "fps:{d}", .{rl.getFPS()});
+        //rl.drawText(fpsString.ptr, 20, 20, 20, rl.Color.gray);
+
+        const fpsString = try std.fmt.allocPrintZ(allocator, "fps:{d}", .{rl.getFPS()});
+        defer allocator.free(fpsString);
         rl.drawText(fpsString, 20, 20, 20, rl.Color.gray);
 
         //rl.drawText("Hi Dash", 190, 200, 20, rl.lIGHTGRAY);
+        //
 
         // draw grid of bits
         //var x: u16 = 0;
